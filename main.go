@@ -1,54 +1,62 @@
 package main
 
 import (
-	"bookmark/store"
-	"fmt"
+	"bufio"
+	"log"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
-// Bookmark - contains a reverse index & data store
-type Bookmark struct {
-	index store.Index
-	data  store.Data
-}
+var bookmark *Bookmark
+var indexFile *os.File
 
-// NewBookmark - create new bookmark
-func NewBookmark() *Bookmark {
-	return &Bookmark{
-		index: store.Index{},
-		data:  store.Data{},
+func init() {
+	bookmark = NewBookmark()
+	home := os.Getenv("HOME")
+	if home == "" {
+		home = os.Getenv("HOMEPATH")
+		if home == "" {
+			log.Fatalln("can not spot home directory, exit...")
+			os.Exit(1)
+		}
 	}
-}
-
-// Add - store the k, v data & compile the revert index
-func (b *Bookmark) Add(k, v string, tags ...string) {
-	b.data.Add(k, v)
-	b.index.Add(k, k)
-	for _, t := range tags {
-		b.index.Add(t, k)
+	bmPath := filepath.Join(home, ".bookmark")
+	err := os.MkdirAll(bmPath, 0755)
+	if err != nil {
+		log.Fatalf("can not create .bookmark directory: %s\n", err.Error())
 	}
-}
 
-// Query - get data match the keys
-func (b *Bookmark) Query(search []string) []store.KeyValue {
-	k := b.index.Query(search)
-	kv := b.data.Get(k)
-	return kv
+	indexPath := filepath.Join(bmPath, "index")
+	indexFile, err := os.OpenFile(indexPath, os.O_CREATE|os.O_RDWR, 0755)
+
+	scanner := bufio.NewScanner(indexFile)
+
+	for scanner.Scan() {
+		s := scanner.Text()
+		s = strings.TrimSpace(s)
+		ss := strings.Split(s, " ")
+		bookmark.index.Add(ss[0], ss[1:]...)
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatalf("fail to read from bookmark index: %s\n", err.Error())
+	}
+
 }
 
 func main() {
-	b := NewBookmark()
+	// b := NewBookmark()
+	// b.Add("google", "www.google.com", "search")
+	// b.Add("baidu", "www.baidu.com", "search", "china")
+	// b.Add("bing", "www.bing.com", "search", "microsoft")
+	// b.Add("cnbing", "cn.bing.com", "search", "microsoft", "china")
 
-	b.Add("google", "www.google.com", "search")
-	b.Add("baidu", "www.baidu.com", "search", "china")
-	b.Add("bing", "www.bing.com", "search", "microsoft")
-	b.Add("cnbing", "cn.bing.com", "search", "microsoft", "china")
-
-	r := b.Query(os.Args[1:])
-	if len(r) > 0 {
-		fmt.Println("Search result:")
-	}
-	for i, kv := range r {
-		fmt.Printf("[#%d] %s: %s\n", i, kv.Key(), kv.Value())
-	}
+	// r := b.Query(os.Args[1:])
+	// if len(r) > 0 {
+	// 	fmt.Println("Search result:")
+	// }
+	// for i, kv := range r {
+	// 	fmt.Printf("[#%d] %s: %s\n", i, kv.Key(), kv.Value())
+	// }
 }
