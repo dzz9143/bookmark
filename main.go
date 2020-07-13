@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -9,54 +10,85 @@ import (
 )
 
 var bookmark *Bookmark
-var indexFile *os.File
+var dataFile *os.File
 
 func init() {
 	bookmark = NewBookmark()
-	home := os.Getenv("HOME")
-	if home == "" {
-		home = os.Getenv("HOMEPATH")
-		if home == "" {
-			log.Fatalln("can not spot home directory, exit...")
+	homePath := os.Getenv("HOME")
+	if homePath == "" {
+		homePath = os.Getenv("HOMEPATH")
+		if homePath == "" {
+			log.Fatalln("can not find home directory, exit")
 			os.Exit(1)
 		}
 	}
-	bmPath := filepath.Join(home, ".bookmark")
-	err := os.MkdirAll(bmPath, 0755)
+
+	dataPath := filepath.Join(homePath, ".bookmark")
+	f, err := os.OpenFile(dataPath, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0755)
+
+	dataFile = f
+
 	if err != nil {
-		log.Fatalf("can not create .bookmark directory: %s\n", err.Error())
+		log.Fatalf("fail to open bookmark open file: %s\n", err.Error())
 	}
 
-	indexPath := filepath.Join(bmPath, "index")
-	indexFile, err := os.OpenFile(indexPath, os.O_CREATE|os.O_RDWR, 0755)
-
-	scanner := bufio.NewScanner(indexFile)
+	scanner := bufio.NewScanner(dataFile)
 
 	for scanner.Scan() {
 		s := scanner.Text()
 		s = strings.TrimSpace(s)
 		ss := strings.Split(s, " ")
-		bookmark.index.Add(ss[0], ss[1:]...)
+		l := len(ss)
+		if l < 2 {
+			continue
+		}
+
+		key, value := ss[0], ss[1]
+		var tags []string
+		if l > 2 {
+			tags = ss[2:]
+		}
+
+		bookmark.Add(key, value, tags...)
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Fatalf("fail to read from bookmark index: %s\n", err.Error())
+		log.Fatalf("fail to load bookmark data: %s\n", err.Error())
 	}
+}
 
+func usage() {
+	fmt.Fprintf(os.Stderr, `Usage:
+1. To add: bookmark -a <key> <value> <tag1> <tag2> ... <tagN>
+2. To query: bookmark <keyword1> ... <keywordN>`)
 }
 
 func main() {
-	// b := NewBookmark()
-	// b.Add("google", "www.google.com", "search")
-	// b.Add("baidu", "www.baidu.com", "search", "china")
-	// b.Add("bing", "www.bing.com", "search", "microsoft")
-	// b.Add("cnbing", "cn.bing.com", "search", "microsoft", "china")
+	args := os.Args[1:]
 
-	// r := b.Query(os.Args[1:])
-	// if len(r) > 0 {
-	// 	fmt.Println("Search result:")
-	// }
-	// for i, kv := range r {
-	// 	fmt.Printf("[#%d] %s: %s\n", i, kv.Key(), kv.Value())
-	// }
+	if len(args) == 0 {
+		usage()
+		return
+	}
+
+	cmd := args[0]
+
+	if cmd == "-a" {
+		// handle add to bookmark
+		if len(args) < 3 {
+			fmt.Fprintf(os.Stderr, "when add to bookmark, <key> <value> must be specified\n\n")
+			usage()
+			return
+		}
+
+		dataFile.WriteString(strings.Join(args[1:], " ") + "\n")
+		defer dataFile.Close()
+		return
+	}
+
+	// handle query
+	keywords := args[:]
+	for _, kv := range bookmark.Query(keywords) {
+		fmt.Printf("%s: %s\n", kv.Key(), kv.Value())
+	}
 }
