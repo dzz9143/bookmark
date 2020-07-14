@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -59,8 +60,9 @@ func init() {
 
 func usage() {
 	fmt.Fprintf(os.Stderr, `Usage:
-1. To add: bookmark -a <key> <value> <tag1> <tag2> ... <tagN>
-2. To query: bookmark <keyword1> ... <keywordN>`)
+1. To add: bm -a <key> <value> <tag1> <tag2> ... <tagN>
+2. To query: bm <keyword1> ... <keywordN>
+`)
 }
 
 func main() {
@@ -87,8 +89,23 @@ func main() {
 	}
 
 	// handle query
-	keywords := args[:]
-	for _, kv := range bookmark.Query(keywords) {
-		fmt.Printf("%s: %s\n", kv.Key(), kv.Value())
+	result := bookmark.Query(args[:])
+
+	if len(result) < 1 {
+		return
+	}
+
+	maxLen := 0
+
+	for _, kv := range result {
+		if l := len(kv.Key()); l > maxLen {
+			maxLen = l
+		}
+	}
+
+	for _, kv := range result {
+		k := kv.Key()
+		format := "%-" + strconv.Itoa(maxLen) + "s | %s\n"
+		fmt.Printf(format, k, kv.Value())
 	}
 }
