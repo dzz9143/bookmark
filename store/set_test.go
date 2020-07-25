@@ -37,52 +37,25 @@ func TestSet(t *testing.T) {
 		t.Errorf("Test failed, expect: %v, actual: %v", e, a)
 	}
 
-	if a, e := s.Len(), 2; e != a {
-		t.Errorf("Test failed, expect: %v, actual: %v", e, a)
-	}
-
-	s.Add("foo") // add a duplicate value will not change anything
-
-	if a, e := s.Len(), 2; e != a {
-		t.Errorf("Test failed, expect: %v, actual: %v", e, a)
-	}
-
-	s.Del("foo")
-
-	if a, e := s.Exist("foo"), false; e != a {
-		t.Errorf("Test failed, expect: %v, actual: %v", e, a)
-	}
-
-	if a, e := s.Len(), 1; e != a {
-		t.Errorf("Test failed, expect: %v, actual: %v", e, a)
-	}
-
-	s.Del("boo") // delete a not exist value will not change anything
-
-	if a, e := s.Exist("boo"), false; e != a {
-		t.Errorf("Test failed, expect: %v, actual: %v", e, a)
-	}
-
-	if a, e := s.Len(), 1; e != a {
-		t.Errorf("Test failed, expect: %v, actual: %v", e, a)
-	}
-
-	s.Del("bar") // delete the last value in set
+	s.Del("bar")
 
 	if a, e := s.Exist("bar"), false; e != a {
 		t.Errorf("Test failed, expect: %v, actual: %v", e, a)
 	}
 
-	if a, e := s.Len(), 0; e != a {
+	s.Del("boo")
+
+	if a, e := s.Exist("boo"), false; e != a {
 		t.Errorf("Test failed, expect: %v, actual: %v", e, a)
 	}
 
-	for i := 0; i < 3; i++ {
-		s.Add(string(i))
-	}
+	other := NewSet()
 
-	arr := s.ToSlice()
-	if a, e := stringSliceEqual(arr, []string{"0", "1", "2"}), false; e != a {
+	other.Add("boo")
+
+	s.Merge(other)
+
+	if a, e := s.Exist("boo"), true; e != a {
 		t.Errorf("Test failed, expect: %v, actual: %v", e, a)
 	}
 }
@@ -98,12 +71,8 @@ func TestSetIntersect(t *testing.T) {
 	b.Add("foo")
 	b.Add("hello")
 
-	s := Intersect(&a, &b)
+	s := Intersect(a, b)
 	if a, e := s.Exist("foo"), true; e != a {
-		t.Errorf("Test failed, expect: %v, actual: %v", e, a)
-	}
-
-	if a, e := s.Len(), 1; e != a {
 		t.Errorf("Test failed, expect: %v, actual: %v", e, a)
 	}
 }

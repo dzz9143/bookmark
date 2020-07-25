@@ -4,17 +4,18 @@ package store
 type Set map[string]bool
 
 // Intersect - get the intersect between two sets
-func Intersect(a, b *Set) *Set {
-	if a == nil || b == nil {
-		return nil
+func Intersect(a, b Set) Set {
+	s := NewSet()
+
+	if len(a) == 0 || len(b) == 0 {
+		return s
 	}
 
-	s := &Set{}
-	for k := range *a {
+	for k := range a {
 		s.Add(k)
 	}
 
-	for k := range *s {
+	for k := range s {
 		if !b.Exist(k) {
 			s.Del(k)
 		}
@@ -29,49 +30,41 @@ func NewSet() Set {
 }
 
 // Add - add a string `k` into the set
-func (s *Set) Add(k string) {
-	(*s)[k] = true
+func (s Set) Add(k string) {
+	s[k] = true
 }
 
 // Merge - merge one set into the other
-func (s *Set) Merge(other *Set) {
+func (s Set) Merge(other Set) {
 	if other == nil {
 		return
 	}
 
-	for v, exist := range *other {
-		if exist {
+	for v, ok := range other {
+		if ok {
 			s.Add(v)
 		}
 	}
 }
 
 // Del - delete a string `k` from the set
-func (s *Set) Del(k string) {
-	_, ok := (*s)[k]
-	if ok {
-		delete(*s, k)
-	}
-}
-
-// Len - get length of set
-func (s *Set) Len() int {
-	return len(*s)
+func (s Set) Del(k string) {
+	s[k] = false
 }
 
 // Exist - check if a string `k` exists in the set
-func (s *Set) Exist(k string) bool {
-	return (*s)[k]
+func (s Set) Exist(k string) bool {
+	return s[k]
 }
 
 // ToSlice - convert the string set to string array
-func (s *Set) ToSlice() []string {
-	var col []string
-	for k, ok := range *s {
+func (s Set) ToSlice() []string {
+	sli := make([]string, 0, len(s))
+	for k, ok := range s {
 		if ok {
-			col = append(col, k)
+			sli = append(sli, k)
 		}
 	}
 
-	return col
+	return sli
 }

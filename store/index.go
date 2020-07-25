@@ -13,11 +13,11 @@ func NewIndex() Index {
 }
 
 // Add - add a group of tags into the index
-func (i *Index) Add(k string, values ...string) {
-	s, ok := (*i)[k]
+func (i Index) Add(k string, values ...string) {
+	s, ok := i[k]
 	if !ok {
 		s = NewSet()
-		(*i)[k] = s
+		i[k] = s
 	}
 
 	for _, v := range values {
@@ -26,21 +26,21 @@ func (i *Index) Add(k string, values ...string) {
 }
 
 // Query - query if a set of keys contains in this index
-func (i *Index) Query(search []string) []string {
-	var res *Set
+func (i Index) Query(search []string) []string {
+	var res Set
 
 	for _, s := range search {
-		cur := Set{}
-		for key, set := range *i {
+		cur := NewSet()
+		for key, set := range i {
 			if strings.Contains(key, s) {
-				cur.Merge(&set)
+				cur.Merge(set)
 			}
 		}
 
 		if res == nil {
-			res = &cur
+			res = cur
 		} else {
-			res = Intersect(res, &cur)
+			res = Intersect(res, cur)
 		}
 	}
 
